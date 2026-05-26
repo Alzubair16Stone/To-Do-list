@@ -25,12 +25,12 @@ const Navbar = () => {
         className="flex items-center gap-3 bg-gray-500 p-2 rounded-bl-lg rounded-tr-lg cursor-pointer"
         onClick={() => setIsModalOpen(true)}
       >
-        <AddTaskModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-        />
         Add Task <Logs />
       </motion.button>
+      <AddTaskModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </motion.div>
   );
 };

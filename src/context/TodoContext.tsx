@@ -10,6 +10,7 @@ interface TodoContextType {
   categories: string[];
   addCategory: (category: string) => void;
   deleteCategory: (category: string) => void;
+  toggleTodoComplete: (id: string) => void;
 }
 
 export const TodoContext = createContext<TodoContextType | undefined>(
@@ -17,9 +18,21 @@ export const TodoContext = createContext<TodoContextType | undefined>(
 );
 
 export const TodoProvider = ({ children }: { children: ReactNode }) => {
-  const [todos, setTodos] = useState<Task[]>([]);
+  const [todos, setTodos] = useState<Task[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("todos");
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
   const [loading, setLoading] = useState<boolean>(false);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<string[]>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("categories");
+      return saved ? JSON.parse(saved) : [];
+    }
+    return [];
+  });
 
   const addTodo = (todo: Task) => {
     setTodos([...todos, todo]);
@@ -41,21 +54,21 @@ export const TodoProvider = ({ children }: { children: ReactNode }) => {
     // Will add a screen to warn the user "Are you sure you want to delete this category? All tasks under this category will be deleted as well" before deleting the category
   };
 
+  const toggleTodoComplete = (id: string) => {
+    setTodos(
+      todos.map((todo) =>
+        todo.id === id ? { ...todo, isCompleted: !todo.isCompleted } : todo,
+      ),
+    );
+  };
+
   useEffect(() => {
-    setTodos([
-      {
-        id: "1",
-        title: "Sample Task",
-        description: "This is a sample task description.",
-        priority: "low",
-        category: "general",
-        dueDate: new Date().toISOString(),
-        isCompleted: false,
-        createdAt: new Date().toISOString(),
-      },
-    ]);
-    setCategories(["general", "work", "personal"]);
-  }, []);
+    localStorage.setItem("todos", JSON.stringify(todos));
+  }, [todos]);
+
+  useEffect(() => {
+    localStorage.setItem("categories", JSON.stringify(categories));
+  }, [categories]);
 
   return (
     <TodoContext.Provider
@@ -68,6 +81,7 @@ export const TodoProvider = ({ children }: { children: ReactNode }) => {
         categories,
         addCategory,
         deleteCategory,
+        toggleTodoComplete,
       }}
     >
       {children}

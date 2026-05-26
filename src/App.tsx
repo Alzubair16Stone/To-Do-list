@@ -7,6 +7,7 @@ import Navbar from "./components/Navbar";
 
 function App() {
   const [isOpen, setIsOpen] = useState<boolean>(true);
+
   return (
     <TodoProvider>
       <div className="flex min-h-screen bg-gray-900 text-white overflow-x-hidden relative">

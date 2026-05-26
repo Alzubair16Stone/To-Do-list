@@ -1,7 +1,6 @@
-import { useState, useContext, type FormEvent } from "react";
-import { motion } from "framer-motion";
+import { useState, useContext } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { X, Calendar, Flag } from "lucide-react";
-import type { Task } from "../types";
 import { TodoContext } from "../context/TodoContext";
 
 interface AddTaskModalProps {
@@ -25,11 +24,16 @@ const AddTaskModal = ({ isOpen, onClose }: AddTaskModalProps) => {
   const [newCategory, setNewCategory] = useState<boolean>(false); // For adding new category
   const [dueDate, setDueDate] = useState<string>("");
   const createdAt = new Date().toISOString();
+  const [warning, setWarning] = useState<string>("");
   if (!isOpen) return null; // Safety check, though AnimatePresence handles this
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim()) {
+      setWarning("Please fill in the task title before submitting.");
+      setTimeout(() => setWarning(""), 3000); // Clear warning after 3 seconds
+      return;
+    }
 
     addTodo({
       title,
@@ -66,6 +70,20 @@ const AddTaskModal = ({ isOpen, onClose }: AddTaskModalProps) => {
         onClick={(e) => e.stopPropagation()} // Prevents closing when clicking inside the card
         className="bg-gray-800 w-full max-w-md rounded-2xl border border-gray-700 p-6 shadow-2xl relative text-white"
       >
+        {/* Modal Warning */}
+        <AnimatePresence>
+          {warning && (
+            <motion.div
+              initial={{ y: -50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }} // Note: changed from -20 to 0 for cleaner positioning
+              exit={{ y: -50, opacity: 0 }}
+              // 2. Cleaned up Tailwind positioning classes
+              className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 pointer-events-none"
+            >
+              <p>{warning}</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -162,7 +180,10 @@ const AddTaskModal = ({ isOpen, onClose }: AddTaskModalProps) => {
                   type="text"
                   placeholder="Enter new category"
                   value={category}
-                  onChange={(e) => setCategory(e.target.value)}
+                  onChange={(e) => {
+                    if (e.target.value.trim() !== "")
+                      return setCategory(e.target.value);
+                  }}
                   className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-indigo-500 transition-colors placeholder:text-gray-600"
                 />
                 <button
