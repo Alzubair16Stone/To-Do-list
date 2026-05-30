@@ -1,4 +1,10 @@
-import { createContext, useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useEffect,
+  useState,
+  useMemo,
+  type ReactNode,
+} from "react";
 import type { Task } from "../types";
 
 interface TodoContextType {
@@ -8,7 +14,7 @@ interface TodoContextType {
   addTodo: (todo: Task) => void;
   deleteTodo: (id: string) => void;
   categories: string[];
-  addCategory: (category: string) => void;
+  addCategory: (category: string) => boolean;
   deleteCategory: (category: string) => void;
   toggleTodoComplete: (id: string) => void;
 }
@@ -25,40 +31,63 @@ export const TodoProvider = ({ children }: { children: ReactNode }) => {
     }
     return [];
   });
+
   const [loading, setLoading] = useState<boolean>(false);
+
   const [categories, setCategories] = useState<string[]>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("categories");
-      return saved ? JSON.parse(saved) : [];
+      return saved ? JSON.parse(saved) : ["Work", "Personal", "Shopping"];
     }
     return [];
   });
 
   const addTodo = (todo: Task) => {
-    setTodos([...todos, todo]);
+    setTodos((prevTodos) => [...prevTodos, todo]);
   };
 
   const deleteTodo = (id: string) => {
-    setTodos(todos.filter((todo) => todo.id !== id));
-  };
-
-  const addCategory = (category: string) => {
-    if (!categories.includes(category)) {
-      setCategories([...categories, category]);
-    }
-    // Will add a screen to warn the user "There is already a category with this name" if the category already exists
-  };
-
-  const deleteCategory = (category: string) => {
-    setCategories(categories.filter((cat) => cat !== category));
-    // Will add a screen to warn the user "Are you sure you want to delete this category? All tasks under this category will be deleted as well" before deleting the category
+    setTodos((prevTodos) => prevTodos.filter((todo) => todo.id !== id));
   };
 
   const toggleTodoComplete = (id: string) => {
-    setTodos(
-      todos.map((todo) =>
+    setTodos((prevTodos) =>
+      prevTodos.map((todo) =>
         todo.id === id ? { ...todo, isCompleted: !todo.isCompleted } : todo,
       ),
+    );
+  };
+
+  const addCategory = (category: string): boolean => {
+    const trimmed = category.trim();
+    if (!trimmed) return false;
+
+    let alreadyExists = false;
+
+    setCategories((prevCategories) => {
+      if (
+        prevCategories.some(
+          (cat) => cat.toLowerCase() === trimmed.toLowerCase(),
+        )
+      ) {
+        alreadyExists = true;
+        return prevCategories; // Returns unchanged reference array
+      }
+      return [...prevCategories, trimmed];
+    });
+
+    return !alreadyExists; // If it already exists, returns false so UI can show your warning popup
+  };
+
+  const deleteCategory = (category: string) => {
+    // 1. Remove the targeted Category parameter array entry safely
+    setCategories((prevCategories) =>
+      prevCategories.filter((cat) => cat !== category),
+    );
+
+    // 2. Cascading Delete: Wipe out all corresponding sub-tasks assigned under that category header space
+    setTodos((prevTodos) =>
+      prevTodos.filter((todo) => todo.category !== category),
     );
   };
 
@@ -70,21 +99,23 @@ export const TodoProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem("categories", JSON.stringify(categories));
   }, [categories]);
 
+  // CRITICAL MEMOIZATION: This blocks unneeded re-rendering cycles down the react element tree!
+  const contextValue = useMemo(
+    () => ({
+      todos,
+      loading,
+      setLoading,
+      addTodo,
+      deleteTodo,
+      categories,
+      addCategory,
+      deleteCategory,
+      toggleTodoComplete,
+    }),
+    [todos, loading, categories],
+  );
+
   return (
-    <TodoContext.Provider
-      value={{
-        todos,
-        addTodo,
-        loading,
-        setLoading,
-        deleteTodo,
-        categories,
-        addCategory,
-        deleteCategory,
-        toggleTodoComplete,
-      }}
-    >
-      {children}
-    </TodoContext.Provider>
+    <TodoContext.Provider value={contextValue}>{children}</TodoContext.Provider>
   );
 };

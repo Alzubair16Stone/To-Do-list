@@ -42,7 +42,7 @@ const AddTaskModal = ({ isOpen, onClose }: AddTaskModalProps) => {
       category,
       dueDate,
       createdAt,
-      id: "",
+      id: crypto.randomUUID(),
       isCompleted: false,
     });
     addCategory(category); // Ensure category is added to the list if it's new
